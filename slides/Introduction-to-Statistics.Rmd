@@ -1,0 +1,565 @@
+---
+title: "Introduction to Statistics in R"
+author: "Gerardo Martínez"
+date: "2023-03-01"
+output: bookdown::gitbook
+---
+\usepackage{amsmath}
+\usepackage{booktabs}
+
+\newcommand{\P}{\mathrm{P}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\var}{\mathrm{var}}
+\newcommand{\ceil}[1]{\left\lceil#1\right\rceil}
+
+# Some words about the workshop
+
+Welcome to this workshop! Thank you for attending! 
+
+The goal of this workshop is to study some basic notions of S Statistics with R. As this is a 4-hour workshop I will not have the time to go in depth into many topics but I selected a handful of them that I feel are basic notions researchers working with data should know. 
+
+The workshop has three parts. In the first part we will talk about hypothesis testing: we will introduce the elements of a hypothesis testing procedure and then apply those to what is called the T test. The second part is about linear regression modelling: this is the main core of the workshop. To finish the workshop we will discuss one particular type of hypothesis test which is the Kolmogorov-Smirnov test for goodness-of-fit.
+
+I would like to give a disclaimer about what this workshop is not:
+
+* A hardcore workshop about R. During this workshop we won't see very advanced R code and R will only be a tool to discuss our theoretical results.
+
+* A workshop on data visualization. As much as I would love to go in depth about R packages that help us visualize data, I won't have the time to talk about this. However, if you have a particular data set and you need some guidance on how to visualize it, we can discuss after the workshop and I'll be happy to help you!
+
+That being said, you can open RStudio and let us get to work!
+
+# Hypothesis testing
+
+## Introductory example
+
+We have been hired to do quality control at a factory that produces metal coins for a board game. We know don't want to ruin the players' experience so if a coin is not a balanced coin we would like to discard it. Given a particular coin we construct two hypothesis:
+
+\begin{equation*}
+H_0: \text{The coin is balanced} \quad \text{and} \quad H_1: \text{The coin is not balanced}
+\end{equation*}
+
+We don't have an infinite time so to test that the coin is balanced we will throw it a hundred times. If the coin is balanced we expect to see approximately $50$ heads and $50$ tails. We are aware that the numbers won't be *exactly* 50/50 so we will be a bit permissive and create the following rule: *if the number of heads is less or equal than 45, we will discard the coin*.
+
+Let us load the file `data_coin.csv`. This file has a hundred tosses of a coin. The ones correspond to "heads" and the zeros to "tails". Count the number of heads in these hundred tosses of the coin.
+```{r eval = FALSE}
+# Find a way to calculate how many heads there were
+...
+```
+What would you do with this particular coin? Would you throw it away or would you keep it?
+
+The company is very environmentally friendly so we don't want to throw coins unnecessarily. We would take an incorrect decision if the coin is balanced but we decide to throw it. Given a perfectly good coin, we want to estimate how frequently we would throw incorrectly these coins.
+
+Let us first simulate $100$ tosses of $1000$ coins. One way of doing this is simulating $100 \times 1000$ tosses and then storing the result in a matrix. 
+
+```{r eval = FALSE}
+# Complete the ... with the appropriate function to simulate
+# 100*1000 coins of a balanced coin.
+balanced_coin_tosses <- ...
+
+# Store the result in a matrix with 100 rows and 1000 columns.
+balanced_coin_tosses <- matrix(balanced_coin_tosses, 
+                               nrow = 100)
+```
+
+To check this is indeed a fair coin we can plot a histogram of the data set. 
+
+```{r eval = FALSE}
+hist(balanced_coin_tosses,
+     main = "",
+     xlab = "Outcome of 1000 balanced coin tosses")
+```
+
+Here comes the tricky part. For each coin, we want to calculate the number of heads we obtain after tossing it a hundred times. 
+```{r eval = FALSE}
+# Create a vector that will store the result
+balanced_coin_number_heads <- rep(0, 1000)
+
+# Record the number of sixes
+for(j in 1:1000){
+  balanced_coin_number_heads[j] <- sum(balanced_coin_tosses[,j] == 1)
+}
+```
+
+Let us see how this looks by plotting a histogram.
+
+```{r eval = FALSE}
+hist(balanced_coin_number_heads,
+     main = 'Number of heads in 100 balanced coin tosses',
+     xlab = 'Number of heads',
+     col = "deepskyblue")
+```
+
+We are now ready to estimate the probability of throwing away a perfectly good coin. If we throw away a good coin we will be making a mistake. Let us call this error, the *type 1 error*.
+```{r eval = FALSE}
+error_1 <- (sum(balanced_coin_number_heads<=48))/1000
+```
+
+Maybe our problem is we are being too strict with our rule of decision. Let us change it and let us say that we will throw away the coin if the number of heads is less or equal than 45. Let us recalculate now the probability of throwing away good coin under this decision. 
+
+```{r eval = FALSE}
+# Recalculate the error using the new decision rule.
+error_1 <- ...
+```
+
+For some reason, the machine produces from time to time produces coins that are unbalanced. These coins have a probability of landing on heads of $p = 0.45$. We would like our rule to be able to detect these coins so we can throw them away. We would like to estimate what is the probability of not discarding coins that are unbalanced. Let us repeat what we did before for the balanced coin, now for the unbalanced coin.
+
+
+```{r eval = FALSE}
+# Complete the ... with the appropriate function to simulate
+# 100*1000 coins of a balanced coin.
+unbalanced_coin_tosses <- rbinom(100 * 1000, 
+                                 size = 1, 
+                                 prob = 0.45)
+
+# Store the result in a matrix with 100 rows and 1000 columns.
+unbalanced_coin_tosses <- matrix(unbalanced_coin_tosses, 
+                                 nrow = 100)
+
+hist(unbalanced_coin_tosses,
+     main = 'Number of heads in 100 unbalanced coin tosses',
+     xlab = 'Number of heads',
+     col = "deepskyblue")
+```
+
+Let us check now how the distribution of the number of heads now look. 
+```{r eval = FALSE}
+# Create a vector that will store the result
+unbalanced_coin_number_heads <- rep(0, 1000)
+
+# Record the number of sixes
+for(j in 1:1000){
+  unbalanced_coin_number_heads[j] <- sum(unbalanced_coin_tosses[,j] == 1)
+}
+
+hist(unbalanced_coin_number_heads,
+     main = 'Number of heads in 100 coin tosses',
+     xlab = 'Number of heads',
+     col = "darkgoldenrod2")
+```
+
+We are would like to plot both distributions in the same plot. While this can be done in base-R, using the package `ggplot2` will make this task way easier. Let us start by loading this package. You can copy the following code to install it/load it:
+
+```{r eval = FALSE}
+using <- function(...) {
+  # This function will take a R library name and install it if
+  # it has not been previously installed.
+  libs <- unlist(list(...))
+  req <- unlist(lapply(libs, require, character.only = TRUE))
+  need <- libs[req==FALSE]
+  if(length(need)>0){ 
+    install.packages(need)
+    lapply(need,require,character.only=TRUE)
+  }
+}
+
+using("ggplot2")
+```
+
+We can now plot the two distributions.
+
+```{r eval = FALSE}
+df_coins <- data.frame(number_of_heads = c(balanced_coin_number_heads, unbalanced_coin_number_heads),
+                       type_of_coin = c(rep("balanced", 1000), rep("unbalanced", 1000)))
+
+ggplot(df_coins, aes(x = number_of_heads, color = type_of_coin, fill = type_of_coin))+
+  geom_histogram(alpha = 0.5, position = "identity")
+```
+Let us now calculate the probability of not throwing away an unbalanced coin. We will call this error the *type 2 error*.
+```{r eval = FALSE}
+# Replace ... with the probability of NOT throwing away an unbalanced coin
+error_2 <- ...
+```
+
+## Hypothesis testing
+
+Given a random sample $X_1, \dots, X_n$ a hypothesis is a statement about one aspect of the underlying distribution of the data. 
+
+We will test two hypothesis, one is the **null hypothesis** and we denote it with $H_0$ and the other is the **alternative hypothesis** and we denote it with $H_1$. In our previous example, given $X_1, \dots, X_{100}$ tosses of a coin, we had defined
+
+\begin{equation*}
+H_0: \text{The coin is balanced} \quad \text{and} \quad H_1: \text{The coin is not balanced}
+\end{equation*}
+
+A **hypothesis test procedure** or **hypothesis test** is a rule that specifies for which sample values $H_0$ is rejected for which sample values $H_0$ is not rejected. The set of samples for which we will reject the null hypothesis is called the **rejection or critical region**.
+
+In our example we had checked two rules
+
+1. We will reject the $H_0$ if the number of heads is lower than $48$.
+
+2. We will reject the $H_0$ if the number of sixes is lower than $45$.
+
+We can see that our decisions all depended on a function of our sample: in the example, we used the number of heads. This will always be the case, the critical region will be dependent on a function of the sample that we will call the **test statistic**. Hence, in our example, the test statistic was 'number of heads in a hundred flips of a coin'.
+
+As we have seen in the example of the coin, there are two sources of error while doing hypothesis testing: 
+
+1. The first type of error occurs when we reject the null hypothesis but the null hypothesis was actually true: this is called the **type 1 error**. In the example, we incurred a type 1 error when we discarded balanced coins. 
+
+2. The second type of error occurs when we fail to reject the null hypothesis but the null hypothesis was actually false: this is called the **type 2 error**. In the example, we incurred a type 2 error when we did not discard unbalanced coins.
+
+We can summarize the distinct combinations of rejection/not rejection of the null hypothesis vs the actual truth in the following table:
+
+|                   | Reject $H_0$     | Not reject $H_0$   |
+|------------------:|:----------------:|:------------------:|
+| $H_0$ **is true** | Type 1 error     | Correct decision   |
+| $H_1$ **is true** | Correct decision | Type 2 error       |
+
+We saw that if we control to minimize the type 1 error, the type 2 error ended up being extremely high. Unfortunately, when doing hypothesis testing we won't be able to minimize both errors at the same time. For this reason, we will fix a type 1 error and find the rejection region that minimizes the type 2 error. We will denote with $\alpha$ the type 1 error and with $\beta$ the type 2 error. The number $\alpha$ is called the **significance level** and the number $1-\beta$ (equal to the probability of obtaining a **true positive**) is called the **power of the test**.
+
+In summary, build a hypothesis test we will need to
+
+1. state the null and alternative hypothesis,
+
+2. predefine a type 1 error, $\alpha$,
+
+3. define a test statistic, and
+
+4. construct a rejection region.
+
+## Testing for the mean of a population
+
+In the data set $\texttt{data_normal.csv}$ we have 1000 values coming from a normal distribution with an *unknown* variance. We know the data comes from a normal distribution but we would like to test if the expected value $\mu$ is equal to $0$. We propose then the hypotheses
+\begin{equation*}
+H_0: \mu = 0 \quad \text{and} \quad H_1: \mu \neq 0.
+\end{equation*}
+
+Let us plot a histogram of this distribution
+```{r eval = FALSE}
+# Plot the histogram
+...
+
+# Once you have the histogram plotted, you can use the following code
+# to overlay a normal density.
+lines(x = seq(-4,4, by = 0.1), 
+      y = dnorm(seq(-4,4, by = 0.1)), 
+      col = "red", lwd = 2)
+```
+
+I don't know you but I can't really tell if this is normally distributed with $\mu = 0$ or not. Let us test this. We will set the significance level $\alpha$ to $0.05$. Let's now find a test statistic.
+
+If $X_1, \dots X_n$ are normally distributed with mean $\mu$ and variance $\sigma^2$ then the distribution of the 
+\begin{equation*}
+T = \frac{\bar{X}_n - \mu}{\sqrt{\frac{S_n^2}{n}}}, \quad \text{where} \quad \bar{X}_n = \frac{1}{n} \sum_{i = 1}^n X_i \quad \text{and} \quad S_n^2 = \frac{1}{n-1} \sum_{i = 1}^n (X_i-\bar{X}_n)^2.
+\end{equation*}
+follows a well-known distribution called a Student's $t$-distribution. The parameter of a $t$-distribution is called its *degrees of freedom* and it is a natural number $n$. The test statistic $T$ previously defined follows a $t$-distribution with $n-1$ degrees of freedom with $n$ being the sample size. 
+
+In this case, we will construct the following rejection region:
+\begin{equation*}
+\text{If } |T_{\text{obs}}| > k \text{ for some k, then we will reject the null hypothesis.}
+\end{equation*}
+As we want the type 1 error to be equal to $\alpha = 0.05$, we will have to find $k$ such that
+\begin{equation*}
+\P(\text{type 1 error}) = \P(\text{reject } H_0| H_0 \text{ is true}) = \P(|T| > k | H_0 \text{ is true}) = 0.05.
+\end{equation*}
+Under $H_0$ (i.e., when $\mu = 0$), the statistic $T$ follows a Student-$t$ distribution with $n = 999$ degrees of freedom. Using properties of a $t$-distributed random variable we can prove that $k$ has to be equal to $1.962341$ (those interested can find the proof of this remark in this footnote^[We want to find $k$ such that
+\begin{equation*}
+\P(\text{type 1 error}) = \P(\text{reject } H_0| H_0 \text{ is true}) = \P(|T| > k | H_0 \text{ is true}) = 0.05.
+\end{equation*}
+This is equivalent to finding $k$ such that
+\begin{equation*}
+\P(|T| \leq k | H_0 \text{ is true}) = \P(-k \leq T \leq k| H_0 \text{ is true}) \geq 0.95.
+\end{equation*}
+As we saw, under $H_0$, the statistic $T$ has a $t$ distribution with $n-1$ degrees of freedom. We can now use a property of the $t$ distributions: their pdfs are [even functions](https://en.wikipedia.org/wiki/Even_and_odd_functions) (i.e. they are symmetrical with respect to the $y$-axis). Then, denoting with $F_T$ the cdf of a $t$-distribution we get that
+\begin{equation*}
+  F_T(x) = 1 - F_T(-x)
+\end{equation*}
+Hence,
+\begin{equation*}
+\P(-k \leq T \leq k| H_0 \text{ is true}) = F_T(k) - F_T(-k) = 1 - 2F_T(k) \geq 0.95.
+\end{equation*}
+if and only if $F_T(k) = 0.025$. Hence, we want to find $k$ such that $F_T(k) = 0.025$. Using the function `qt`in R it can be found that the value $k$ is equal to 1.962341]). So, the final rejection region will be
+\begin{equation*}
+\text{If } |T_{\text{obs}}| > 1.962341 \text{ then we will reject the null hypothesis.}
+\end{equation*}
+
+Let us calculate the value of $T_{\text{obs}}$ and decide if we reject or not the null-hypothesis.
+```{r eval = FALSE}
+# Using the formula of the test statistic T, find the value
+# of T_obs for our data set
+...
+```
+What can you say about our data set? Do you reject or not the null hypothesis?
+
+## Testing for the mean of a population: p-values
+
+From the previous example, it looks like constructing the rejection region is the hardest part. There is a different way of constructing rejection rules and that is with the help of p-values. If we have a two-sided alternative hypothesis (this is the case we were looking before, as the alternative hypothesis was $\mu \neq 0$), and a test statistic $X$ we define the p-value as
+\begin{equation*}
+p = 2 \cdot \mathrm{min} \{ \P_0(X \leq X_{\text{obs}}), \P_0 (X \geq X_{\text{obs}}) \}, \quad \text{where } \P_0(\cdot) = \P(\cdot |H_0 \text{ is true}).
+\end{equation*}
+The interpretation of a p value is: the probability of observing a value of our statistic $X$ as extreme as the observed one $X_{\text{obs}}$.
+
+
+It can be proven that using the rule
+\begin{equation*}
+\text{If } |X_{\text{obs}}| > k \text{ for some k, then we will reject the null hypothesis.}
+\end{equation*}
+is equivalent to saying
+\begin{equation*}
+\text{If } p < \alpha, \text{ then we will reject the null hypothesis.}
+\end{equation*}
+
+There is a function in R called `t.test()` will calculate the p-value in for our hypothesis test.
+```{r eval = FALSE}
+t.test(x = data_normal)
+```
+What can you say now about the rejection of the null hypothesis?
+
+
+# Linear regression analysis
+
+## Remembering the equation of a line
+If we are in a 2-d space, we can write almost all lines using the equation
+\begin{equation*}
+y = mx + n,
+\end{equation*}
+where $m$ is called the *slope* and $n$ is the *intercept*.
+
+Let us load the file `CrabAgePrediction.csv`. This data set includes 3893 entries corresponding to different measures from crabs. We want to see if there is a linear model that links the age of a crab to other measures of the crab. Let us start studying if there is a linear relationship between the age and the weight of the crab. More specifically, we want to find a line such that for an entry $i$ we have
+\begin{equation*}
+\text{age}_i = m\cdot \text{height}_i + n
+\end{equation*}
+
+Let us explore this graphically first. Let us make a scatterplot of the data and try to find the slope $m$ and the intercept $n$ by mere guessing:
+```{r eval = FALSE}
+# Change the values of m and n
+m <- 0
+n <- 0
+
+ggplot(data = crab_data, aes(x = Height, y = Age)) +
+  geom_point() + 
+  geom_abline(slope = m, intercept = n, col = "red", lwd = 1) + theme_bw()
+```
+
+We can notice is that the points don't lie on a perfect line; we will need to tolerate a little bit of error. Maybe a better model would be
+\begin{equation*}
+\text{age}_i = m\cdot \text{height}_i + n + \varepsilon_i,
+\end{equation*}
+where $\varepsilon_i$ is an error. We want to find *the best line*, i.e. the one that minimizes the errors $\varepsilon_i$. Obviously, we can't go and try all possible values of $m$ and $n$ here; we need to be more systematic. On top of that, what do we mean exactly  by minimizing the error?
+
+## Simple linear regression
+
+Let $(y_1, x_1) \dots (y_n, x_n)$ be $n$ observations. We will think the terms $\{y_i\}_{i = 1}^n$ come from a random variable $Y$ and that the terms $\{x_i\}_{i = 1}^n$ are *fixed quantities*^[We could develop the theory where $X$ is also random but the math gets a bit trickier so let's keep it simple]. We want to build a *linear model* of the form
+\begin{equation*}
+Y = \beta_0 + \beta_1 X + \varepsilon,
+\end{equation*}
+where $\beta_0, \beta_1$ are real numbers and $\varepsilon$ is a random variable corresponding to the error. The model previously defined is called a *simple linear regression model*. The variable $Y$ is called the **response variable** and the variable *X* is the **predictor** or **independent variable**. 
+
+Let us write $\hat{y}_i = \beta_0 + \beta_1 x_i$. We want to find the coefficients $\beta_0, \beta_1$ that solve the following optimization problem
+\begin{equation*}
+\min_{\beta_0, \beta_1} \sum_{i = 1}^n (y_i-\hat{y}_i)^2 = \min_{\beta_0, \beta_1} \sum_{i = 1}^n (y_i - \beta_0 - \beta_1x_i)^2.
+\end{equation*}
+
+This problem has a well-known solution and it is 
+\begin{equation*}
+\beta_0 = \bar{y} - \beta_1 \bar{x}\quad \text{and} \quad \beta_1 = \frac{\sum_{i = 1}^n (x_i-\bar{x}(y-\bar{y})}{\sum_{i = 1}^n (x_i-\bar{x})^2}.
+\end{equation*}
+(Those interested in how to obtain this can look at the book "Linear Models in Statistics" by Rencher and Shaalje, page 128).
+
+We don't have to implement this in R. We can find these coefficients with the function `lm()`. If we have a response variable `y` and a predictor `x` in a data set called `data`, the syntax to write this in R is `lm(y ~ x, data)`. 
+
+Let us apply this to our crab data:
+
+```{r eval = FALSE}
+lm(Age ~ Height, crab_data)
+```
+
+We can record this model into a variable so as to access the coefficients later.
+
+```{r eval = FALSE}
+simple_regression <- lm(Age ~ Height, crab_data)
+```
+
+Let us now make the plot we wanted before!
+
+```{r eval = FALSE}
+# Change the values of m and n
+m <- simple_regression$coefficients[2]
+n <- simple_regression$coefficients[1]
+
+ggplot(data = crab_data, aes(x = Height, y = Age)) +
+  geom_point() + 
+  geom_abline(slope = m, intercept = n, col = "red", lwd = 1) + 
+  theme_bw()
+```
+In `ggplot2` there is a built-in function that already calculates the regression model:
+```{r eval = FALSE}
+ggplot(data = crab_data, aes(x = Height, y = Age)) +
+  geom_point() + 
+  geom_smooth(method = lm, col = "red") + 
+  theme_bw()
+```
+
+Oh, well, this is embarrassing... It just doesn't look like what we wanted! We will address this but let us talk about other concepts first.
+
+## Multiple linear regression
+
+We want to extend our model to add multiple predictors. If we have $X_1, \dots, X_p$ predictors we are looking to find a model of the form
+\begin{equation*}
+Y = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \dots + \beta_p X_p + \varepsilon.
+\end{equation*}
+The model previously defined is a *multiple linear regression model*.
+
+To find the coefficients $\{\beta_i \}_{i = 0}^p$ we will solve the optimization problem
+\begin{equation*}
+\min_{\beta_0, \dots, \beta_p} \sum_{i = 1}^n (y_i - \beta_0 - \beta_1x_{1i} - \dots - \beta_p x_{pi})^2.
+\end{equation*}
+Here the math gets a bit trickier. On top of that, there might not even be a unique solution! To ensure there is a unique solution we will add the first assumption to our model.
+\begin{equation*}
+\text{Assumption 1: The predictors } X_1, \dots, X_p \text{ must be uncorrelated.}
+\end{equation*}
+If that assumption holds, there is a unique solution. 
+
+As it is the case with the simple linear regression model, we can solve this problem in R with the function `lm()`. We are going to build the following model
+\begin{equation*}
+\text{Age}_i = \beta_0 + \beta_1 \text{Height}_i + \beta_2 \text{Length}_i + \beta_3 \text{Weight}_i + \beta_5 \text{Diameter}_i + \beta_4 \text{Sex}_i + \varepsilon_i
+\end{equation*}
+To build that model we will use the following syntax:
+```{r eval = FALSE}
+multiple_regression <- lm(Age ~ Height + Length + Weight + Diameter + Sex, crab_data)
+```
+
+We can see what the coefficients are by writing the following in the terminal.
+```{r eval = FALSE}
+multiple_regression$coefficients
+```
+
+Another way of looking at the the regression coefficients using the function `summary()`.
+```{r eval = FALSE}
+summary(multiple_regression)
+```
+
+This is a lot more information than what we need! We will try to understand what all this means. But first let us use our model for something: let us try to predict the value of $Y$ for new data points. 
+
+## Using a regression model for prediction
+Suppose we have new data points for which we only now the values for the predictors and we want to know what is the associated value for the response variable.
+
+Let us load the `crab_data_predict`. We have 894 data entries that have values for the predictors but the age of the crab is missing. To predict what would be the age of the crab we will use the function `predict()`. For future reference, if you're ever trying to do this you have to be very careful to have the data columns named the same way as the data columns of the data set you used to train your model. The `predict()` function will take as input `lm()` output and the new data set we want to predict the values for.
+
+```{r eval = FALSE}
+predict(object = multiple_regression, 
+        newdata = crab_data_predict)
+```
+
+That's all fine, but how do we know that this is actually a good model?
+
+## Goodness-of-fit and hypothesis testing in multiple linear regression
+
+Let us first start tackling the problem of finding a way to know if this model is a good model. Let's note 
+\begin{equation*}
+\hat{y}_i = \beta_0 + \beta_1 x_{1i} + \dots + \beta_p x_{pi}.
+\end{equation*}
+We define the **total sum of squares** the quantity
+\begin{equation*}
+\mathrm{SST} = \sum_{i = 1}^n (y_i - \bar{y})^2.
+\end{equation*}
+The total sum of squares can be decomposed into the sum of the **regression sum of squares** (SSR) and the **error sum of squares** (SSE) as follows:
+\begin{equation*}
+\mathrm{SST} = \sum_{i = 1}^n (y_i - \bar{y})^2 = \sum_{i=1}^n (y_i-\hat{y}_i)^2 + \sum_{i=1}^n (\bar{y} - \hat{y}_i)^2 = \mathrm{SSR} + \mathrm{SSE}.
+\end{equation*}
+In terms of this quantities we define the **coefficient of determination** or simply **R-squared** as
+\begin{equation*}
+R^2 = \frac{\mathrm{SSR}}{\mathrm{SST}} = 1 - \frac{\mathrm{SSE}}{\mathrm{SST}}.
+\end{equation*}
+This quantity is a non-negative quantity that is always between $0$ and $1$. The higher it is, the better our data set can be explained by a linear model. 
+
+The R-squared can be higher just by adding more predictors. For this reason R also provides the **adjusted R-squared** which is a way to penalize the R-squared by the number of predictors used. More on this [here](https://en.wikipedia.org/wiki/Coefficient_of_determination#Adjusted_R2).
+
+A great thing about linear models is that we can do statistical inference about it. That is, we can develop hypothesis tests to test if our model is *statistically meaningful*. To do this, we must add a couple of assumptions to our model
+\begin{equation*}
+Y = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \dots + \beta_p X_p + \varepsilon.
+\end{equation*}
+The assumptions are
+\begin{equation*}
+\text{Assumption 2: The error terms }\varepsilon_i \text { follow a normal distribution with mean 0 and variance }\sigma^2.
+\end{equation*}
+and
+\begin{equation*}
+\text{Assumption 3: The error terms }\varepsilon_i \text{ are uncorrelated}.
+\end{equation*}
+
+We will know build two tests. The first one is
+\begin{equation*}
+H_0: \beta_1 = \beta_2 = \dots = \beta_p \quad \text{vs} \quad H_1: \text{There exists a coefficient }\beta_i \text{ different than 0}.
+\end{equation*}
+This test will tell us that our model is meaningful *as a whole*. The second test (or series of tests) will be a test on the individual coefficients. For each coefficient $\beta_i$ we will build the test
+\begin{equation*}
+H_0: \beta_i = 0 \quad \text{vs} \quad H_1: \beta_i \neq 0.
+\end{equation*}
+This tests if *each coefficient* is meaningful.
+
+As it was explained before, we will need to find an appropriate test statistic and a rejection rule for the null hypotheses of these tests. The test statistic for the first model is the $F$ statistic which is defined as
+\begin{equation*}
+F = \frac{\mathrm{SSR}/p}{\mathrm{SSE}/(n-p-1)},
+\end{equation*}
+where $p$ is the number of predictors and $n$ the number of variables. Given the assumptions of normality of the errors, the test statistic F has a well-known distribution.
+
+The test statistic for the second model is called the $T$ statistic and has a more complicated shape. But what we need to know is that we also know its distribution if we assume the normality of the errors. 
+
+We will not care about rejection regions this time: we will reject the null hypothesis if $\mathrm{pval} < \alpha$ for a predefined significance level $\alpha$.
+
+```{r eval = FALSE}
+summary(multiple_regression)
+```
+What can we say about the model we have built?
+
+# The Kolmogorov-Smirnov test
+
+## Motivation
+
+We have seen that to properly do hypothesis testing in the context of the classical theory of linear regression, we must assume that our errors $\varepsilon_i$ are normally distributed with mean $0$ and variance $\sigma^2$. 
+
+One way to check this assumption is with what is called a **Q-Q plot**. In the horizontal axis we will plot the theoretical quantiles of a normal distribution and in the vertical axis we will plot the observed quantiles. Within an `lm()` object there is a built-in q-q plot function:
+```{r eval = FALSE}
+plot(multiple_regression, 2)
+```
+Ideally, we would like to see all the error points lying on the dotted line. It is clear that they do not all lie there. However, it might be the case that this is deviation from the expectation is not so big so as to affirm that the error isn't normally distributed. 
+
+To tackle this problem, we will introduce one test to check if the error follows a normal distribution.
+
+## The Kolmogorov-Smirnov test for goodness-of-fit
+Given a random sample $X_1, \dots, X_n$ from a random variable $X$ with an *unknown* cumulative distribution function (cdf) $F(x)$, we want to check the following hypothesis:
+\begin{equation*}
+H_0: F(x) = F_0(x),
+\end{equation*}
+where $F_0$ is a specified cdf. In our case $F_0$ will be the cdf of a random variable $Z$ with normal distribution with mean $0$ and variance $\sigma^2$. As we don't know the true variance $\sigma^2$, we will use the estimated variance $\hat{\sigma}^2$.
+
+The test statistic we will use is the Kolmogorov-Smirnov statistic. To understand this statistic we need to first introduce the **empirical distribution function**. Mathematically, given a sample $X_1, \dots, X_n$, the empirical cumulative distribution function (ecdf) is defined as
+\begin{equation*}
+\hat{F}_n(x) = \frac{1}{n} \sum_{i = 1}^n \mathrm{1}_{(-\infty, x]}(X_i).
+\end{equation*}
+This means, given a real number $x$, $\hat{F}_n(x)$ will tell you how many sample points $\{X_i\}_{i = 1}^n$ fall in the interval $(-\infty, x]$ divided by the total number of sample points. Let us plot how this looks for our error points. If we have an `lm()` object, the residuals can be accessed by writing `model$residuals`. R has a built-in function for the ecdf which is `ecdf()`. Let us plot the ecdf and overlay the true cdf of a normal distribution on top (the code to plot this with `ggplot2` can be found [here](http://www.sthda.com/english/wiki/ggplot2-ecdf-plot-quick-start-guide-for-empirical-cumulative-density-function-r-software-and-data-visualization))
+
+```{r eval = FALSE}
+plot(ecdf(multiple_regression$residuals))
+
+min_residual <- min(multiple_regression$residuals)
+max_residual <- max(multiple_regression$residuals)
+
+x <- seq(min_residual, max_residual, by = .001)
+y <- pnorm(x, mean = 0, sd = sigma(multiple_regression))
+
+lines(x, y, col = "red")
+```
+
+The Kolmogorov-Smirnov test will compare the differences between the cdf $F_0$ and the ecdf $\hat{F}_n$. Hence, it is defined as
+\begin{equation*}
+\mathrm{KS} = \sup_{x \in \R} |\hat{F}_n(x)-F_0(x)|.
+\end{equation*}
+The distribution of the KS under $H_0$ is **really** hard to compute but it is well known. Luckily for us, everything is well implemented in R with the function `ks.test()`. The syntax is the following:
+```{r eval = FALSE}
+ks.test(multiple_regression$residuals, "pnorm", 0, sigma(multiple_regression))
+```
+What can we say then about our normality assumption?
+
+A lot has been said about the usage of the Kolmogorov-Smirnov to detect normality. The biggest problem here is that we are also estimating $\sigma^2$ so we have to be cautious. You can find some discussions about this topic [here](https://stats.stackexchange.com/questions/58791/what-to-do-when-kolmogorov-smirnov-test-is-significant-for-residuals-of-parametr) and [here](https://stats.stackexchange.com/questions/95642/kolmogorov-smirnov-test-reliability/).
+
+# Bibliography
+
+I used the following books to prepare this workshop:
+
+* *Statistical Inference* by Casella and Berger. Duxbury Advanced Series, 2002. This was used for the hypothesis testing section.
+ 
+* *Linear Models in Statistics* by Rencher and Schaalje. Wiley, 2008. This was used for the linear regression models section.
+
+* *Non-Parametric Tests for Complete Data* by Bagdonavičius, Kruopis, and Nikulin. Wiley, 2011. This was used for the hypothesis testing and Kolmogorov-Smirnov sections. 
