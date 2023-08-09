@@ -34,7 +34,7 @@ That being said, you can open RStudio and let us get to work!
 
 ## Introductory example
 
-We have been hired to do quality control at a factory that produces metal coins for a board game. We know don't want to ruin the players' experience so if a coin is not a balanced coin we would like to discard it. Given a particular coin we construct two hypothesis:
+We have been hired to do quality control at a factory that produces metal coins for a board game. We don't want to ruin the players' experience so if a coin is not a balanced coin we would like to discard it. Given a particular coin we construct two hypothesis:
 
 \begin{equation*}
 H_0: \text{The coin is balanced} \quad \text{and} \quad H_1: \text{The coin is not balanced}
@@ -139,7 +139,7 @@ hist(unbalanced_coin_number_heads,
      col = "darkgoldenrod2")
 ```
 
-We are would like to plot both distributions in the same plot. While this can be done in base-R, using the package `ggplot2` will make this task way easier. Let us start by loading this package. You can copy the following code to install it/load it:
+We would like to plot both distributions in the same plot. While this can be done in base-R, using the package `ggplot2` will make this task way easier. Let us start by loading this package. You can copy the following code to install it/load it^[The code was taken from [this Stack Exchange answer](https://stackoverflow.com/a/44660688).]
 
 ```{r eval = FALSE}
 using <- function(...) {
@@ -182,13 +182,13 @@ We will test two hypothesis, one is the **null hypothesis** and we denote it wit
 H_0: \text{The coin is balanced} \quad \text{and} \quad H_1: \text{The coin is not balanced}
 \end{equation*}
 
-A **hypothesis test procedure** or **hypothesis test** is a rule that specifies for which sample values $H_0$ is rejected for which sample values $H_0$ is not rejected. The set of samples for which we will reject the null hypothesis is called the **rejection or critical region**.
+A **hypothesis test procedure** or **hypothesis test** is a rule that specifies for which sample values $H_0$ is rejected and for which sample values $H_0$ is not rejected. The set of samples for which we will reject the null hypothesis is called the **rejection or critical region**.
 
 In our example we had checked two rules
 
 1. We will reject the $H_0$ if the number of heads is lower than $48$.
 
-2. We will reject the $H_0$ if the number of sixes is lower than $45$.
+2. We will reject the $H_0$ if the number of heads is lower than $45$.
 
 We can see that our decisions all depended on a function of our sample: in the example, we used the number of heads. This will always be the case, the critical region will be dependent on a function of the sample that we will call the **test statistic**. Hence, in our example, the test statistic was 'number of heads in a hundred flips of a coin'.
 
@@ -213,9 +213,13 @@ In summary, build a hypothesis test we will need to
 
 2. predefine a type 1 error, $\alpha$,
 
-3. define a test statistic, and
+3. define a test statistic $T$, 
 
-4. construct a rejection region.
+4. find the observed value for our particular data set, $T_{\text{obs}}$, 
+
+5. construct a rejection region,
+
+6. decide wheter to reject or not the null hypothesis.
 
 ## Testing for the mean of a population
 
@@ -258,15 +262,15 @@ Under $H_0$ (i.e., when $\mu = 0$), the statistic $T$ follows a Student-$t$ dist
 \end{equation*}
 This is equivalent to finding $k$ such that
 \begin{equation*}
-\P(|T| \leq k | H_0 \text{ is true}) = \P(-k \leq T \leq k| H_0 \text{ is true}) \geq 0.95.
+\P(|T| \leq k | H_0 \text{ is true}) = \P(-k \leq T \leq k| H_0 \text{ is true}) = 0.95.
 \end{equation*}
-As we saw, under $H_0$, the statistic $T$ has a $t$ distribution with $n-1$ degrees of freedom. We can now use a property of the $t$ distributions: their pdfs are [even functions](https://en.wikipedia.org/wiki/Even_and_odd_functions) (i.e. they are symmetrical with respect to the $y$-axis). Then, denoting with $F_T$ the cdf of a $t$-distribution we get that
+As we saw, under $H_0$, the statistic $T$ has a $t$ distribution with $n-1$ degrees of freedom. We can now use a property of the $t$ distributions: their pdfs are [even functions](https://en.wikipedia.org/wiki/Even_and_odd_functions) (i.e. they are symmetrical with respect to the $y$-axis). Then, denoting with $F_T$ the cdf of T, we get that
 \begin{equation*}
   F_T(x) = 1 - F_T(-x)
 \end{equation*}
 Hence,
 \begin{equation*}
-\P(-k \leq T \leq k| H_0 \text{ is true}) = F_T(k) - F_T(-k) = 1 - 2F_T(k) \geq 0.95.
+\P(-k \leq T \leq k| H_0 \text{ is true}) = F_T(k) - F_T(-k) = 1 - 2F_T(k) = 0.95.
 \end{equation*}
 if and only if $F_T(k) = 0.025$. Hence, we want to find $k$ such that $F_T(k) = 0.025$. Using the function `qt`in R it can be found that the value $k$ is equal to 1.962341]). So, the final rejection region will be
 \begin{equation*}
@@ -315,7 +319,7 @@ y = mx + n,
 \end{equation*}
 where $m$ is called the *slope* and $n$ is the *intercept*.
 
-Let us load the file `CrabAgePrediction.csv`. This data set includes 3893 entries corresponding to different measures from crabs. We want to see if there is a linear model that links the age of a crab to other measures of the crab. Let us start studying if there is a linear relationship between the age and the weight of the crab. More specifically, we want to find a line such that for an entry $i$ we have
+Let us load the file `crab_data.csv`. This data set includes 3893 entries corresponding to different measures from crabs; the data set is a subset of the data set found [here](https://www.kaggle.com/datasets/sidhus/crab-age-prediction). We want to see if there is a linear model that links the age of a crab to other measures of the crab. Let us start studying if there is a linear relationship between the age and the weight of the crab. More specifically, we want to find a line such that for an entry $i$ we have
 \begin{equation*}
 \text{age}_i = m\cdot \text{height}_i + n
 \end{equation*}
@@ -335,7 +339,9 @@ We can notice is that the points don't lie on a perfect line; we will need to to
 \begin{equation*}
 \text{age}_i = m\cdot \text{height}_i + n + \varepsilon_i,
 \end{equation*}
-where $\varepsilon_i$ is an error. We want to find *the best line*, i.e. the one that minimizes the errors $\varepsilon_i$. Obviously, we can't go and try all possible values of $m$ and $n$ here; we need to be more systematic. On top of that, what do we mean exactly  by minimizing the error?
+where $\varepsilon_i$ is an error. 
+
+We want to find *the best line*, i.e. the one that minimizes the errors $\varepsilon_i$. Obviously, we can't go and try all possible values of $m$ and $n$ here; we need to be more systematic. On top of that, what do we mean exactly by minimizing the error?
 
 ## Simple linear regression
 
@@ -352,7 +358,7 @@ Let us write $\hat{y}_i = \beta_0 + \beta_1 x_i$. We want to find the coefficien
 
 This problem has a well-known solution and it is 
 \begin{equation*}
-\beta_0 = \bar{y} - \beta_1 \bar{x}\quad \text{and} \quad \beta_1 = \frac{\sum_{i = 1}^n (x_i-\bar{x}(y-\bar{y})}{\sum_{i = 1}^n (x_i-\bar{x})^2}.
+\beta_0 = \bar{y} - \beta_1 \bar{x}\quad \text{and} \quad \beta_1 = \frac{\sum_{i = 1}^n (x_i-\bar{x})(y-\bar{y})}{\sum_{i = 1}^n (x_i-\bar{x})^2}.
 \end{equation*}
 (Those interested in how to obtain this can look at the book "Linear Models in Statistics" by Rencher and Shaalje, page 128).
 
@@ -432,9 +438,9 @@ summary(multiple_regression)
 This is a lot more information than what we need! We will try to understand what all this means. But first let us use our model for something: let us try to predict the value of $Y$ for new data points. 
 
 ## Using a regression model for prediction
-Suppose we have new data points for which we only now the values for the predictors and we want to know what is the associated value for the response variable.
+Suppose we have new data points for which we only know the values for the predictors. We want to know for these new data points what is the associated value for the response variable.
 
-Let us load the `crab_data_predict`. We have 894 data entries that have values for the predictors but the age of the crab is missing. To predict what would be the age of the crab we will use the function `predict()`. For future reference, if you're ever trying to do this you have to be very careful to have the data columns named the same way as the data columns of the data set you used to train your model. The `predict()` function will take as input `lm()` output and the new data set we want to predict the values for.
+Let us load the `crab_data_predict.csv`. We have 893 data entries that have values for the predictors but the age of the crab is missing. To predict what the age of the crab would be, we will use the function `predict()`. For future reference, if you're ever trying to do this you have to be very careful to have the data columns named the same way as the data columns of the data set you used to train your model. The `predict()` function will take as input the `lm()` output and the new data set we want to predict the values for.
 
 ```{r eval = FALSE}
 predict(object = multiple_regression, 
@@ -478,11 +484,13 @@ and
 \text{Assumption 3: The error terms }\varepsilon_i \text{ are uncorrelated}.
 \end{equation*}
 
-We will know build two tests. The first one is
+We will now build two tests. The first one is
 \begin{equation*}
 H_0: \beta_1 = \beta_2 = \dots = \beta_p \quad \text{vs} \quad H_1: \text{There exists a coefficient }\beta_i \text{ different than 0}.
 \end{equation*}
-This test will tell us that our model is meaningful *as a whole*. The second test (or series of tests) will be a test on the individual coefficients. For each coefficient $\beta_i$ we will build the test
+This test will tell us that our model is meaningful *as a whole*. 
+
+The second test (or series of tests) will be a test on the individual coefficients. For each coefficient $\beta_i$ we will build the test
 \begin{equation*}
 H_0: \beta_i = 0 \quad \text{vs} \quad H_1: \beta_i \neq 0.
 \end{equation*}
@@ -513,7 +521,7 @@ One way to check this assumption is with what is called a **Q-Q plot**. In the h
 ```{r eval = FALSE}
 plot(multiple_regression, 2)
 ```
-Ideally, we would like to see all the error points lying on the dotted line. It is clear that they do not all lie there. However, it might be the case that this is deviation from the expectation is not so big so as to affirm that the error isn't normally distributed. 
+Ideally, we would like to see all the error points lying on the dotted line. It is clear that they do not all lie there. However, it might be the case that this deviation from the expectation is not so big so as to affirm that the error isn't normally distributed. 
 
 To tackle this problem, we will introduce one test to check if the error follows a normal distribution.
 
